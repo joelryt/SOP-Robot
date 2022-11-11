@@ -1,23 +1,52 @@
 
-# Getting started
+## Environment Setup
 
-The robot uses ROS2 (Robot Operating System 2). Read the [ROS2 wiki!](https://index.ros.org/doc/ros2/).
+Follow the instructions in [development](./docs/DEVELOPMENT.md) on how to create the VM using Vagrant and setup the
+development environment. Remember to install Extension Pack for USB passthrough for VirtualBox.
 
-**Note: See [development](./docs/DEVELOPMENT.md) for how to create VirtualBox ROS2 Foxy VM using Vagrant**
+After the VM is created, remember to add USB device filters for the USB devices you are using with the robot in the VM
+settings (e.g., webcam, servo controller).<br>
+Oracle VM VirtualBox Manager -> Select the created VM -> Settings -> USB -> Check the 'Enable USB Controller' box and
+choose USB 3.0 Controller -> Add filters for devices using the '+' button
 
-## The Robot
+## Running The Robot
 
-The robot uses dynamixel servos. Servos are controlled via the `robot_hardware` ROS node, which implements the hardware interface for [ros2_control](https://github.com/ros-controls/ros2_control). `robot` package contains the servo controller configurations
-for the robot. See [head.yaml](src/robot/controllers/head.yaml), for example. The head supports `joint_trajectory_controller`. When using this controller, joints can be controlled by sending action messages to the trajectroy controller. See [bring up](./docs/BRINGUP.md) for an example.
+We suggest downloading Dynamixel Wizard 2.0 to test the connection and functionality of the servos before trying to run
+the robot. This is optional but can save some time debugging if the robot doesn't work.
 
-Joint -> Servo mappings are defined in [config/dynamixel.yaml](./config/dynamixel.yaml).
+Open the created VM and open a terminal. Use `rosdep install --from-paths src --ignore-src --rosdistro foxy -r -y`
+to install the dependencies. In addition to this, use `sudo apt-get install python3-keras` to install the keras package
+(the first command is not able to download it for some reason).
 
-<!--
-See the diagram below and the servo joint configuration: [config/dynamixel.yaml](./config/dynamixel.yaml)
-
-![](img/overview.png)
--->
-
+After installing the required dependencies, use `colcon build` to build the packages and `source install/setup.bash`.
+The `source install/setup.bash` command has to be run every time you open a new terminal window.<br>
+After building, launch the robot
+```console
+ros2 launch robot robot.launch.py
+```
+You should see some prints running in the terminal now. Open a new terminal window and start the required controllers.
+```console
+ros2 control load_start_controller joint_state_controller
+ros2 control load_start_controller eyes_controller
+```
+You can check that the controllers are active with:
+```console
+ros2 control list_controllers
+```
+After the required controllers are active, you can start the face tracker and eye movement nodes (face tracker can also
+be started before starting the controllers, eye movement node requires the controllers).<br>
+Start the face tracker
+```console
+ros2 launch face_tracker face_tracker.test.launch.py
+```
+When the face tracker is running, you can view the camera feed with face recognition by running
+```console
+ros2 run rqt_image_view rqt_image_view image_face_topic
+```
+Finally, start the eye movement node in a new terminal window
+```console
+ros2 run eye_movement eye_movement_node
+```
 ## Project structure
 
 * src - all packages
@@ -45,10 +74,3 @@ Baud rate: 57600
 **Note: head tilt range of motion is poor**
 
 **Note: servo angle limits are not configured**
-
-## Getting started
-
-1. See [Development](./docs/DEVELOPMENT.md)
-2. See [Robot bring-up](./docs/BRINGUP.md)
-
-**Note: Be careful not to move joints too much, limits are not set yet**
